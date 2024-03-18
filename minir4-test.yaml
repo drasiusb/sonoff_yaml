@@ -45,6 +45,10 @@ sensor:
     name: ${device_name} Uptime
     update_interval: 300s
     entity_category: "diagnostic"
+  
+  - platform: dallas
+    address: 0xf03de1e380a78228
+    name: "Temperature #1"
 
 text_sensor:
   - platform: wifi_info
@@ -103,4 +107,17 @@ binary_sensor:
     on_release:
       then:
         - light.turn_off:
-            id: light_1
+            id: 
+            
+# Sensors
+dallas:
+  - pin: GPIO01
+    update_interval: 5s
+#
+# DS18B20       <---->    SONOFF
+# Red     3v3             
+# Black   GND
+# Yellow  Data            GPIO01 (TX PIN)
+#
+# [18:39:18][D][dallas.sensor:082]:   Found sensors:
+# [18:39:18][D][dallas.sensor:084]:     0xf03de1e380a78228

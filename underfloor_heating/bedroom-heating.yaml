@@ -22,6 +22,8 @@
 # - Default state off if no wifi
 # - Document this journey
 # - Safety, no ha for x min, disable heating
+# - Safety, if it should heat, but nothing is happening - STOP
+# - Safety, if it should cool, but nothing is happening - STOP
 
 substitutions:
   device_name: "bedroom-heating"

@@ -82,6 +82,29 @@ sensor:
     index: 0
     name: "Temperature"
     id: temperature
+    on_value_range:
+      - above: 21
+        then:
+          - switch.turn_off: heater
+          - climate.control:
+              id: controller
+              mode: "OFF"
+          - logger.log:
+              format: "Temperature %.1f is above maximum 30°C. Thermal shutdown."
+              args: [ 'id(temperature).state' ]
+              level: WARN
+              tag: ${device_name}
+      - below: 15
+        then:
+          - switch.turn_on: heater
+          - climate.control:
+              id: controller
+              mode: "OFF"
+          - logger.log:
+              format: "Warning! Temperature %.1f is below minimum 15°C. Thermal shutdown."
+              args: [ 'id(temperature).state' ]
+              level: WARN
+              tag: ${device_name}
 
 text_sensor:
   - platform: wifi_info
@@ -102,52 +125,18 @@ climate:
     name: "Controller"
     id: controller
     sensor: temperature
-    default_target_temperature_low: 23 °C
-    default_target_temperature_high: 25 °C
+    default_target_temperature_low: 21 °C
+    default_target_temperature_high: 23 °C
     visual:
       min_temperature: 18
       max_temperature: 26
       temperature_step: 1
 
     heat_action:
-      - if:
-          condition:
-            or:
-              - lambda: "return (isnan(id(temperature).state));"
-              - lambda: "return (id(temperature).state < 15);"  # Minimum allowed temperature
-              - lambda: "return (id(temperature).state > 30);"  # Maximum allowed temperature
-          then:
-            - switch.turn_off: heater
-            - climate.control:
-                id: controller
-                mode: "OFF"
-            - logger.log:
-                format: "Warning! Temperature is %.1f. Thermal shutdown."
-                args: [ 'id(temperature).state' ]
-                level: WARN
-                tag: ${device_name}
-          else:
-            - switch.turn_on: heater
+      - switch.turn_on: heater
 
     idle_action:
-      - if:
-          condition:
-            or:
-              - lambda: "return (isnan(id(temperature).state));"
-              - lambda: "return (id(temperature).state < 15);"  # Minimum allowed temperature
-              - lambda: "return (id(temperature).state > 30);"  # Maximum allowed temperature
-          then:
-            - switch.turn_off: heater
-            - climate.control:
-                id: controller
-                mode: "OFF"
-            - logger.log:
-                format: "Warning! Temperature is %.1f. Thermal shutdown."
-                args: [ 'id(temperature).state' ]
-                level: WARN
-                tag: ${device_name}
-          else:
-            - switch.turn_off: heater
+      - switch.turn_off: heater
 
 switch:
   - platform: gpio

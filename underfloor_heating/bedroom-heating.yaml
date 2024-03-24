@@ -100,7 +100,7 @@ status_led:
 climate:
   - platform: bang_bang
     name: "Controller"
-    id: "controller"
+    id: controller
     sensor: temperature
     default_target_temperature_low: 23 °C
     default_target_temperature_high: 25 °C

@@ -112,7 +112,10 @@ climate:
     heat_action:
       - if:
           condition:
-            lambda: "return (isnan(id(temperature).state));"
+            or:
+              - lambda: "return (isnan(id(temperature).state));"
+              - lambda: "return (id(temperature).state < 21);"  # Minimum allowed temperature
+              - lambda: "return (id(temperature).state > 23);"  # Maximum allowed temperature
           then:
             - switch.turn_off: heater
             - climate.control:
@@ -125,7 +128,10 @@ climate:
     idle_action:
       - if:
           condition:
-            lambda: "return (isnan(id(temperature).state));"
+            or:
+              - lambda: "return (isnan(id(temperature).state));"
+              - lambda: "return (id(temperature).state < 15);"  # Minimum allowed temperature
+              - lambda: "return (id(temperature).state > 30);"  # Maximum allowed temperature
           then:
             - switch.turn_off: heater
             - climate.control:

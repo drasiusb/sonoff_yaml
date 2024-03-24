@@ -121,7 +121,11 @@ climate:
             - climate.control:
                 id: controller
                 mode: "OFF"
-            - logger.log: "Temperature is NaN. Thermal shutdown."
+            - logger.log:
+                format: "Warning! Temperature is %.1f. Thermal shutdown."
+                args: [ 'id(temperature).state' ]
+                level: WARN
+                tag: ${device_name}
           else:
             - switch.turn_on: heater
 
@@ -137,7 +141,11 @@ climate:
             - climate.control:
                 id: controller
                 mode: "OFF"
-            - logger.log: "Temperature is NaN. Thermal shutdown."
+            - logger.log:
+                format: "Warning! Temperature is %.1f. Thermal shutdown."
+                args: [ 'id(temperature).state' ]
+                level: WARN
+                tag: ${device_name}
           else:
             - switch.turn_off: heater
 

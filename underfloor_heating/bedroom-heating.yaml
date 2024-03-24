@@ -110,7 +110,18 @@ climate:
       temperature_step: 1
 
     heat_action:
-      - switch.turn_on: heater
+      - if:
+          condition:
+            lambda: "return (isnan(id(temperature).state));"
+          then:
+            - switch.turn_off: heater
+            - climate.control:
+                id: controller
+                mode: "OFF"
+            - logger.log: "Temperature is NaN. Thermal shutdown."
+          else:
+            - switch.turn_on: heater
+
     idle_action:
       - if:
           condition:

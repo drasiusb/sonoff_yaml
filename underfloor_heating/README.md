@@ -5,3 +5,7 @@
 [ESP Home Dallas sensor (DS18B20)](https://esphome.io/components/sensor/dallas.html)
 
 #### Connections
+
+
+#### Notes
+Bedroom sensor id: `0x7c03209779b5b628`

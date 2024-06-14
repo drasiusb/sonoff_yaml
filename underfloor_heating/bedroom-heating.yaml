@@ -65,7 +65,7 @@ web_server:
 
 dallas:
   - pin: GPIO01
-    update_interval: 15s
+    update_interval: 60s
 
 sensor:
   - platform: wifi_signal

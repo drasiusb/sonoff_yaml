@@ -122,7 +122,7 @@ climate:
     default_target_temperature_high: 23 °C
     visual:
       min_temperature: 20
-      max_temperature: 26
+      max_temperature: 27
       temperature_step: 1
 
     heat_action:

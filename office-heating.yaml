@@ -1,0 +1,116 @@
+substitutions:
+  device_name: "office-heating"
+
+esphome:
+  name: ${device_name}
+  friendly_name: "Office Underfloor Heating"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_pass
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+
+  ap:
+    ssid: ${device_name}-fix-me
+    password: !secret ap_password
+
+captive_portal:
+
+web_server:
+  port: 80
+
+#######################
+### Main Code Below ###
+#######################
+
+one_wire:
+  - platform: gpio
+    pin: GPIO01
+  # update_interval: 60s
+
+sensor:
+  - platform: wifi_signal
+    name: ${device_name} Wifi Signal Strength
+    update_interval: 90s
+    entity_category: "diagnostic"
+
+  - platform: uptime
+    name: ${device_name} Uptime
+    update_interval: 300s
+    entity_category: "diagnostic"
+
+  - platform: dallas_temp
+    # index: 0
+    #update_interval: 5s
+    name: "Temperature"
+    id: temperature
+    on_value:
+      if:
+        condition:
+          or:
+            - lambda: "return (id(temperature).state < 15);"  # Minimum allowed temperature
+            - lambda: "return (id(temperature).state > 30);"  # Maximum allowed temperature
+        then:
+          - switch.turn_off: heater
+          - climate.control:
+              id: controller
+              mode: "OFF"
+          - logger.log:
+              format: "Warning! Temperature is %.1f is out of range [ 15, 30 ]. Thermal shutdown."
+              args: [ 'id(temperature).state' ]
+              level: WARN
+              tag: ${device_name}
+
+text_sensor:
+  - platform: wifi_info
+    ssid:
+      name: Connected SSID
+    ip_address:
+      name: IP Address
+    dns_address:
+      name: DNS Address
+
+status_led:
+  pin:
+    number: GPIO19
+    inverted: true
+
+climate:
+  - platform: bang_bang
+    name: "Controller"
+    id: controller
+    sensor: temperature
+    default_target_temperature_low: 24 °C
+    default_target_temperature_high: 25 °C
+    visual:
+      min_temperature: 20
+      max_temperature: 26
+      temperature_step: 1
+
+    heat_action:
+      - switch.turn_on: heater
+
+    idle_action:
+      - switch.turn_off: heater
+
+switch:
+  - platform: gpio
+    pin: GPIO26
+    name: "Heater"
+    id: heater
+    disabled_by_default: true

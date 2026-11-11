@@ -1,0 +1,27 @@
+# Board: Espressif ESP32 Dev Module
+# Definition: definitions/boards/esp32dev/manifest.yaml
+
+esphome:
+  name: sonoff-m5-3-gang
+  friendly_name: Sonoff M5 3-Gang
+
+esp32:
+  variant: esp32
+
+logger:
+
+api:
+  encryption:
+    key: "ZxcLcZTWvTXpn10T+51xJEt3p0hf0aVhCkAqTjiMVO0="
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: Sonoff M5 3-Gan Fallback Hotspot
+    password: "btvxXc7TuD7i"
+
+captive_portal:

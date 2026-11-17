@@ -38,10 +38,21 @@ web_server:
 ### Main Code Below ###
 #######################
 
+# SAFETY (fail-safe): heating is only allowed while a valid floor temperature
+# reading (15..30 C) arrived within the last 60 s. A missing/broken sensor
+# (NaN), an out-of-range value or a stale reading forces the relay OFF and the
+# controller to OFF. The raw relay is internal, so only the controller can
+# drive it.
+
+globals:
+  - id: last_temp_ok_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
 one_wire:
   - platform: gpio
     pin: GPIO01
-  # update_interval: 60s
 
 sensor:
   - platform: wifi_signal
@@ -55,26 +66,29 @@ sensor:
     entity_category: "diagnostic"
 
   - platform: dallas_temp
-    # index: 0
-    #update_interval: 5s
     name: "Temperature"
     id: temperature
+    update_interval: 10s
     on_value:
-      if:
-        condition:
-          or:
-            - lambda: "return (id(temperature).state < 15);"  # Minimum allowed temperature
-            - lambda: "return (id(temperature).state > 30);"  # Maximum allowed temperature
-        then:
-          - switch.turn_off: heater
-          - climate.control:
-              id: controller
-              mode: "OFF"
-          - logger.log:
-              format: "Warning! Temperature is %.1f is out of range [ 15, 30 ]. Thermal shutdown."
-              args: [ 'id(temperature).state' ]
-              level: WARN
-              tag: ${device_name}
+      then:
+        - if:
+            condition:
+              lambda: 'return !isnan(x) && x >= 15 && x <= 30;'
+            then:
+              - lambda: 'id(last_temp_ok_ms) = millis();'
+            else:
+              - script.execute: safety_shutdown
+
+binary_sensor:
+  - platform: template
+    name: "Temperature Sensor Fault"
+    id: sensor_fault
+    device_class: problem
+    lambda: |-
+      if (id(last_temp_ok_ms) == 0) return true;                   // no valid reading since boot
+      if (millis() - id(last_temp_ok_ms) > 60000) return true;     // reading stale > 60 s
+      float t = id(temperature).state;
+      return isnan(t) || t < 15 || t > 30;                         // missing or out of range
 
 text_sensor:
   - platform: wifi_info
@@ -90,20 +104,54 @@ status_led:
     number: GPIO19
     inverted: true
 
+script:
+  - id: safety_shutdown
+    mode: single
+    then:
+      - switch.turn_off: heater
+      - if:
+          condition:
+            lambda: 'return id(controller).mode != climate::CLIMATE_MODE_OFF;'
+          then:
+            - climate.control:
+                id: controller
+                mode: "OFF"
+            - logger.log:
+                format: "Temperature sensor fault (%.1f). Heating forced OFF."
+                args: [ 'id(temperature).state' ]
+                level: WARN
+                tag: ${device_name}
+
+# Watchdog: enforce the interlock even if no new sensor value arrives.
+interval:
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            binary_sensor.is_on: sensor_fault
+          then:
+            - script.execute: safety_shutdown
+
 climate:
   - platform: bang_bang
     name: "Controller"
     id: controller
     sensor: temperature
-    default_target_temperature_low: 24 °C
-    default_target_temperature_high: 25 °C
+    default_target_temperature_low: 24
+    default_target_temperature_high: 25
     visual:
       min_temperature: 20
       max_temperature: 26
       temperature_step: 1
 
     heat_action:
-      - switch.turn_on: heater
+      - if:
+          condition:
+            binary_sensor.is_off: sensor_fault
+          then:
+            - switch.turn_on: heater
+          else:
+            - script.execute: safety_shutdown
 
     idle_action:
       - switch.turn_off: heater
@@ -113,4 +161,12 @@ switch:
     pin: GPIO26
     name: "Heater"
     id: heater
-    disabled_by_default: true
+    internal: true            # not controllable from HA / web page
+    restore_mode: ALWAYS_OFF  # relay always starts OFF after reboot
+    on_turn_on:
+      # last-line interlock: never stay on with a faulty sensor
+      - if:
+          condition:
+            binary_sensor.is_on: sensor_fault
+          then:
+            - switch.turn_off: heater

@@ -23,11 +23,11 @@
 # - Double click / long press as HA events
 # - Document this journey
 substitutions:
-  device_name: "sonoff-m5-3-gang"
+  device_name: "living-room-switch"
 
 esphome:
   name: ${device_name}
-  friendly_name: "Sonoff M5 3-Gang"
+  friendly_name: "Living Room Switch"
 
 esp32:
   board: esp32dev
